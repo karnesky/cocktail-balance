@@ -204,7 +204,7 @@
         .attr("dominant-baseline","central");
 
       // read the data & display it.
-      d3.tsv("cocktail_data.tsv", function(error, data) {
+      d3.tsv("https://raw.githubusercontent.com/karnesky/cocktail-balance/master/cocktail_data.tsv", function(error, data) {
         data.forEach(function(d) {
           d.abv = +d.abv;
           d.acid = +d.acid;
