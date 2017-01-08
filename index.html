@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="utf-8">
+      <title>Liquid Intelligence</title>
+      <script type="text/javascript" src="http://d3js.org/d3.v3.js"></script>
+      <style type="text/css">
+        /* Misc */
+        /* Axes */
+        body {
+          overflow-x:hidden;
+          padding:0;
+          margin:0;
+        }
+        svg {
+          overflow-x:hidden;
+        }
+        .axis path,
+        .axis line {
+          fill: none;
+          stroke: black;
+          shape-rendering: crispEdges;
+        }
+        .axis text {
+          font-family: arial,sans-serif;
+          font-size: 11px;
+        }
+        .axis_trace {
+          fill: none;
+          stroke: #d5d5d5;
+          shape-rendering: crispEdges;
+          stroke-width: 1;
+        }
+        /* Points */
+        .stirred_c {
+          fill: #B3A2C7;  // purple
+        }
+        .shaken_c {
+          fill: #8EB4E3;  // blue
+        }
+        .eggwhite_c {
+          fill: #D99694;  // red
+        }
+        .built_c {
+          fill: #C4AD87;  // brown
+        }
+        .blended_c {
+          fill: #C3D69B;  // green
+        }
+        .carbonated_c {
+          fill: #FAC090;  // orange
+        }
+        .stirred_r {
+          fill: none;
+          stroke: #604A7B;  // purple
+          stroke-width: 1;
+        }
+        .shaken_r {
+          fill: none;
+          stroke: #376092;  // blue
+          stroke-width: 1;
+        }
+        .eggwhite_r {
+          fill: none;
+          stroke: #953735;  // red
+          stroke-width: 1;
+        }
+        .built_r {
+          fill: none;
+          stroke: #C4BD97;  // brown
+          stroke-width: 1;
+        }
+        .blended_r {
+          fill: none;
+          stroke: #77933C;  // green
+          stroke-width: 1;
+        }
+        .carbonated_r {
+          fill: none;
+          stroke: #E46C0A;  // orange
+          stroke-width: 1
+        }
+        .keyfont {
+          font-family: arial,sans-serif;
+          font-size: 11px;
+          color: #555;
+        }
+        /* Mouseovers */
+        #tooltip {
+          position: absolute;
+          width: 225px;
+          height: auto;
+          padding: 10px;
+          background-color: #F1F2E8;
+          -webkit-border-radius: 3px;
+          -moz-border-radius: 3px;
+          border-radius: 3px;
+          -webkit-box-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+          -moz-box-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+          box-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+        }
+        #tooltip.hidden{
+          opacity: 0;
+        }
+        #tooltip p {
+          margin: 0;
+          font-family: arial,sans-serif;
+          font-size: 11px;
+          line-height: 18px;
+        }
+        .tipcircle {
+          fill:white;
+          stroke: none;
+          opacity: 0;
+        }
+        #cname {
+          font-size: 12px;
+        }
+        #ingred {
+          padding-left: 1.5em;
+        }
+        #ingred p {
+          margin: 0;
+          font-family: arial,sans-serif;
+          font-size: 11px;
+          line-height: 18px;
+        }
+        hr {
+          border: 0;
+          height: 0;
+          border-top: 1px solid rgba(0,0,0,0.3);
+          border-bottom: 1px solid rgba(255,255,2550.3);
+        }
+        .xlabel{
+          font-family: arial,sans-serif;
+          font-size: 16px;
+          }
+      </style>
+  </head>
+  <body>
+	  <h1>Cocktail Balance</h1>
+	  <p>A version of this plot appeared originally in Dave Arnold's <a href="http://amzn.to/2jigt0s">Liquid Intelligence: The Art and Science of the Perfect Cocktail</a>. The data is his and you should buy his excellent book.</p><p>Popular Science still has <a href="http://www.popsci.com/cocktail-calculus-chart-inner-workings-recipes">an excerpt of Dave's book</a>. Unfortunately, the server that had this plot appears to be dead and the file doesn't seem to be mirrored anywhere. This page was reconstructed with the aid of the quantities in Dave's book (pp. 130-135). In the printing of the book I have, some of the numbers are formatted incorrectly. I've used round estimates of these to match the printed figure rather than recalculating. There are like transcription errors and I noticed the size of circles for blended drinks don't match the book. The printed finish conditions are the same as the initial, so perhaps the text doesn't reflect the ice?  I've also added links to the excellent NCOTW posts on <a href="https://www.reddit.com/r/cocktails/">/r/cocktails</a>.</p> 
+    <div id="tooltip" class="hidden">
+      <p><strong><span id="cname">Cocktail Name</span></strong></p>
+      <p>NCOTW: <span id="ncotw"></span></p>
+      <p><hr></p>
+      <p>ABV: <span id="abv">100</span>%</p>
+      <p>Sugar: <span id="sug">100</span>&nbsp;g per 100 mL</p>
+      <p>Acid: <span id="acd">100</span>%</p>
+      <p><hr></p>
+      <p><i>To make:</i></p>
+      <div><p id="ingred">One<br>two</p></div>
+      <p class="last"><span id="instru">I have a div that is a block and have background correctly, inside this div there is a span however the span won't wrap the text inside it but  ...</span></p>
+    </div>
+    <script>
+      var wind = window;
+      var doc1 = document;
+      var doc2 = doc1.documentElement;
+      var doc3 = doc2.getElementsByTagName('body')[0];
+      var w = wind.innerWidth || doc2.clientWidth || doc3.clientWidth;
+      if (w < 700) { w=700 };             // min width 700
+      
+      var padding = 30;
+      var dy=40;
+      var h = 55*dy+padding*5;  // hard-wire! number of cocktails.
+
+      var xScale = d3.scale.linear()
+        .range([padding,w-padding]);
+      var rScaleSugar = d3.scale.linear()
+        .range([2,10])  // output
+        .domain([2,10]) // input
+      var rScaleAcid = d3.scale.linear()
+        .range([0,10])  // output
+        .domain([0,1])  // input
+      var dr = 2;  // extra embiggening
+
+      var xAxis = d3.svg.axis()
+        .scale(xScale)
+        .orient("top");
+      var xAxisBottom = d3.svg.axis()
+        .scale(xScale)
+        .orient("bottom");
+
+      // make the svg!
+      var svg = d3.select("body")
+        .append("svg")
+          .attr("width",w)
+          .attr("height",h);
+      
+      var coords = [0,0];
+
+      //axis labels
+      var yLab = [padding*0.8,h-padding*0.8];
+      svg.selectAll("svg")
+        .data(yLab)
+        .enter()
+        .append("text")
+        .attr("class","xlabel")
+        .attr("text-anchor","end")
+        .attr("x",w-padding)
+        .attr("y",function(d) { return d })
+        .text("Alcohol by volume (ABV)")
+        .style("fill","#aaa")
+        .attr("dominant-baseline","central");
+
+      // read the data & display it.
+      d3.tsv("cocktail_data.tsv", function(error, data) {
+        data.forEach(function(d) {
+          d.abv = +d.abv;
+          d.acid = +d.acid;
+          d.sugar = +d.sugar;
+          d.index = +d.index;
+        });  
+
+        // Axis.
+        xScale.domain([0, d3.max(data, function(d) { return d.abv; })]).nice();
+        svg.append("g")
+          .attr("class","axis")
+          .attr("transform", "translate(0,"+padding*2+")")
+          .call(xAxis);
+        svg.append("g")
+          .attr("class","axis")
+          .attr("transform", "translate(0,"+(h-padding*2)+")")
+          .call(xAxisBottom);          
+        // add gray background lines.
+        var ldata = [ 0,5,10,15,20,25,30,35 ]; // hard-wired!!
+        svg.selectAll("svg")
+          .data(ldata)
+          .enter()
+          .append("line")
+          .attr("class","axis_trace")
+          .attr("x1",function(d) {return xScale(d) })
+          .attr("x2",function(d) {return xScale(d) })
+          .attr("y1",padding*2)
+          .attr("y2",h-padding*2);
+        
+        // Category labels. 
+        var labels = [ { "name":"egg-white",  "idx":1,  "abv": 12.1, "col": "#D99694"},
+                       { "name":"shaken",     "idx":5,  "abv": 14.7, "col": "#8EB4E3"},
+                       { "name":"stirred",    "idx":29, "abv": 20.7, "col": "#B3A2C7"},
+                       { "name":"built",      "idx":45, "abv": 32.1, "col": "#C4AD87"},
+                       { "name":"blender",    "idx":46, "abv": 16.7, "col": "#C3D69B"},
+                       { "name":"carbonated", "idx":49, "abv": 14.2, "col": "#FAC090"}];
+        svg.selectAll("svg")
+          .data(labels)
+          .enter()
+          .append("text")
+          .text(function(d) {return d.name})
+//          .attr("x",function(d) { return xScale(d.abv)+padding*2 })  // aligned with relevant dot
+          .attr("x",function(d) { return xScale(0)+padding })  // aligned with x-axis zero point
+          .attr("y",function(d) { return dy*d.idx+padding*1.75 })
+          .attr("font-family","arial,sans-serif")
+          .attr("font-size","24px")
+          .attr("fill",function(d) {return d.col});
+
+        // Add the key.  // So very Hard-wired!
+        var keywidth = 280;
+        var keyheight = 190+padding;
+        var xKey = w-keywidth-padding-xScale(0.25);
+        var yKey = padding*3;
+        var grayKey = "#555";
+        svg.append("rect")
+          .attr("x",xKey)
+          .attr("y",yKey)
+          .attr("width",keywidth)
+          .attr("height",keyheight)
+          .style("fill","#F1F2E8");
+        var par1 = [ "Cocktails within each drink type presented in","order of alcohol content, spaced equally along","y-axis for clarity. Shaded circles represent sugar","content in grams per 100 ml. Rings represent","acid content in percent." ];
+        svg.selectAll("svg")
+          .data(par1)
+          .enter()
+          .append("text")
+          .attr("x",xKey+padding*0.6)
+          .attr("y",function(d,i) { return yKey+padding+i*15 } )
+          .text(function(d) { return d })
+          .attr("class","keyfont");
+        svg.append("circle")
+          .attr("cx",xKey+padding*0.6+rScaleAcid(1)*dr)
+          .attr("cy",yKey+padding+5*15+rScaleAcid(1)*dr)
+          .attr("r",rScaleAcid(1)*dr)
+          .attr("fill","none")
+          .attr("stroke",grayKey)
+          .attr("stroke-width",1);
+        var par9 = [ "ACID","The diameter of this ring represents","1% acid." ];
+        svg.selectAll("svg")
+          .data(par9)
+          .enter()
+          .append("text")
+          .attr("x",xKey+padding*0.6+rScaleAcid(1)*dr*2+padding*0.5)
+          .attr("y",yKey+padding+5*15+rScaleAcid(1)*dr)
+          .attr("x",xKey+padding*0.6+rScaleAcid(1)*dr*2+padding*0.5)
+          .attr("y",function(d,i) {return yKey+padding+5*15+rScaleAcid(1)*dr-14+i*14})
+          .text(function(d) { return d })
+          .attr("class","keyfont")
+          .attr("dominant-baseline","central");
+        svg.append("circle")
+          .attr("cx",xKey+padding*0.6+rScaleAcid(1)*dr)
+          .attr("cy",yKey+padding+5*15+rScaleAcid(1)*dr*2+padding)
+          .attr("r",rScaleSugar(10)*dr)
+          .attr("fill","#999");
+        var par2 = [ "SUGAR","The diameter of this shaded circle","represents 10g/100ml sugar." ];
+        svg.selectAll("svg")
+          .data(par2)
+          .enter()
+          .append("text")
+          .attr("x",xKey+padding*0.6+rScaleAcid(1)*dr*2+padding*0.5)
+          .attr("y",function(d,i) {return yKey+padding+5*15+rScaleAcid(1)*dr*4-22+i*14})
+          .text(function(d) { return d })
+          .attr("class","keyfont")
+          .attr("dominant-baseline","central");         
+                       
+        // Display the cocktails.
+        var shapes = svg.append("g");
+        
+        var gs = shapes.selectAll("g")
+          .data(data)
+          .enter()
+          .append("g")
+          .attr("transform",function(d,i) {return "translate(0,"+i*dy+")";})
+
+        // Filled circles for sugar quantities
+        var circles = gs.append("circle")
+          .attr("cx",function(d) {return xScale(d.abv)})
+          .attr("cy",padding*3)
+          .attr("r",function(d) {return dr*rScaleSugar(d.sugar)})
+          .attr("class",function(d) {return d.type+"_c"});
+
+        // Open rings for acidity
+        var rings = gs.append("circle")          
+          .attr("cx",function(d) {return xScale(d.abv)})
+          .attr("cy",padding*3)
+          .attr("r",function(d) {return dr*rScaleAcid(d.acid)})
+          .attr("class",function(d) {return d.type+"_r"});
+          
+        // Label each cocktail on the chart
+        var names = gs.append("text")
+          .text(function(d) { return d.name })
+          .attr("x", function(d) { return xScale(d.abv)-Math.max(d.sugar,10*d.acid)*3 })
+          .attr("y",padding*3)
+          .attr("font-family", "arial,sans-serif")
+          .attr("font-size", "11px")
+          .attr("fill", "#231F20")
+          .style("text-anchor", "end")
+          .style("dominant-baseline","central"); 
+        
+        // Invisible circles in which tooltips appear; add tooltips
+        var boxwidth = 280;
+        var tips = gs.append("circle")
+          .attr("cx",function(d) {return xScale(d.abv)})
+          .attr("cy",padding*3)
+          .attr("r",20)
+          .attr("class","tipcircle")
+          .on("mouseover", function(d,i) {
+            var xPos = parseFloat(d3.select(this).attr("cx"))+padding/2;
+            var yPos = parseFloat(d3.select(this).attr("cy"))+d.index*dy-padding/2;
+            if (d3.select(this).attr("cx") > w-boxwidth-padding) {xPos = xPos-boxwidth-padding};
+            if (yPos > h-boxwidth-padding) {yPos = yPos-boxwidth-padding};
+            d3.select("#tooltip")
+              .style("opacity",1)
+              .style("left",xPos+"px")
+              .style("top",yPos+"px")
+              .style("width",boxwidth+"px");
+            d3.select("#instru")
+              .text(d.instructions);              
+            d3.select("#ingred")
+              .html(d.ingredients);            
+            d3.select("#cname")
+              .text(d.name);
+            d3.select("#abv")
+              .text(d.abv);
+            d3.select("#sug")
+              .text(d.sugar);
+            d3.select("#acd")
+              .text(d.acid);
+            d3.select("#ncotw")
+              .html(d.ncotw);
+          })
+          .on("mouseout", function() {
+            //d3.select("#tooltip").transition().delay(1000).style("opacity",0);
+          });
+                         
+      });
+    </script>
+  </body>
+</html>     
